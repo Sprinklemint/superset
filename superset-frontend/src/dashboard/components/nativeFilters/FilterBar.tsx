@@ -23,7 +23,13 @@ import {
   t,
   ExtraFormData,
 } from '@superset-ui/core';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
@@ -32,6 +38,7 @@ import Icon from 'src/components/Icon';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { areObjectsEqual } from 'src/reduxUtils';
 import Loading from 'src/components/Loading';
+import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -67,18 +74,14 @@ const Bar = styled.div`
   /* &.animated {
     display: flex;
     transform: translateX(-100%);
-    transition: transform ${({
-    theme,
-  }) => theme.transitionTiming}s;
+    transition: transform ${({ theme }) => theme.transitionTiming}s;
     transition-delay: 0s;
   }  */
   &.open {
     display: flex;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({
-      theme,
-    }) => theme.transitionTiming * 2}s;
+      transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
     } */
   }
 `;
@@ -95,9 +98,7 @@ const CollapsedBar = styled.div`
   /* &.animated {
     display: block;
     transform: translateX(-100%);
-    transition: transform ${({
-    theme,
-  }) => theme.transitionTiming}s;
+    transition: transform ${({ theme }) => theme.transitionTiming}s;
     transition-delay: 0s;
   } */
   &.open {
@@ -107,9 +108,7 @@ const CollapsedBar = styled.div`
     padding: ${({ theme }) => theme.gridUnit * 2}px;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({
-      theme,
-    }) => theme.transitionTiming * 3}s;
+      transition-delay: ${({ theme }) => theme.transitionTiming * 3}s;
     } */
   }
   svg {
@@ -165,10 +164,11 @@ const StyledCascadeChildrenList = styled.ul`
 `;
 
 const StyledFilterControlTitle = styled.h4`
+  width: 100%;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  text-transform: uppercase;
+  overflow-wrap: break-word;
 `;
 
 const StyledFilterControlTitleBox = styled.div`
@@ -200,16 +200,19 @@ const StyledLoadingBox = styled.div`
 interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
+  directPathToChild?: string[];
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
 interface FiltersBarProps {
   filtersOpen: boolean;
   toggleFiltersBar: any;
+  directPathToChild?: string[];
 }
 
 const FilterValue: React.FC<FilterProps> = ({
   filter,
+  directPathToChild,
   onExtraFormDataChange,
 }) => {
   const {
@@ -222,8 +225,10 @@ const FilterValue: React.FC<FilterProps> = ({
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const [loading, setLoading] = useState<boolean>(true);
-  const [state, setState] = useState({ data: undefined });
+  const [state, setState] = useState([]);
+  const [error, setError] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
@@ -245,6 +250,7 @@ const FilterValue: React.FC<FilterProps> = ({
     url_params: {},
     viz_type: 'filter_select',
     defaultValues: currentValue || defaultValue || [],
+    inputRef,
   });
 
   useEffect(() => {
@@ -255,12 +261,29 @@ const FilterValue: React.FC<FilterProps> = ({
         formData: newFormData,
         force: false,
         requestParams: { dashboardId: 0 },
-      }).then(response => {
-        setState({ data: response.result[0].data });
-        setLoading(false);
-      });
+      })
+        .then(response => {
+          setState(response.result);
+          setError(false);
+          setLoading(false);
+        })
+        .catch(() => {
+          setError(true);
+          setLoading(false);
+        });
     }
-  }, [cascadingFilters]);
+  }, [cascadingFilters, datasetId, groupby]);
+
+  useEffect(() => {
+    if (directPathToChild?.[0] === filter.id) {
+      // wait for Cascade Popover to open
+      const timeout = setTimeout(() => {
+        inputRef?.current?.focus();
+      }, 200);
+      return () => clearTimeout(timeout);
+    }
+    return undefined;
+  }, [inputRef, directPathToChild, filter.id]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
@@ -270,6 +293,16 @@ const FilterValue: React.FC<FilterProps> = ({
       <StyledLoadingBox>
         <Loading />
       </StyledLoadingBox>
+    );
+  }
+
+  if (error) {
+    return (
+      <BasicErrorAlert
+        title={t('Cannot load filter')}
+        body={t('Check configuration')}
+        level="error"
+      />
     );
   }
 
@@ -284,7 +317,7 @@ const FilterValue: React.FC<FilterProps> = ({
           height={20}
           width={220}
           formData={getFormData()}
-          queriesData={[state]}
+          queriesData={state}
           chartType="filter_select"
           hooks={{ setExtraFormData }}
         />
@@ -297,6 +330,7 @@ export const FilterControl: React.FC<FilterProps> = ({
   filter,
   icon,
   onExtraFormDataChange,
+  directPathToChild,
 }) => {
   const { name = '<undefined>' } = filter;
   return (
@@ -307,6 +341,7 @@ export const FilterControl: React.FC<FilterProps> = ({
       </StyledFilterControlTitleBox>
       <FilterValue
         filter={filter}
+        directPathToChild={directPathToChild}
         onExtraFormDataChange={onExtraFormDataChange}
       />
     </StyledFilterControlContainer>
@@ -315,40 +350,43 @@ export const FilterControl: React.FC<FilterProps> = ({
 
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
+  directPathToChild?: string[];
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
 export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   filter,
+  directPathToChild,
   onExtraFormDataChange,
-}) => {
-  return (
-    <>
-      <StyledFilterControlBox>
-        <StyledCaretIcon name="caret-down" />
-        <FilterControl
-          filter={filter}
-          onExtraFormDataChange={onExtraFormDataChange}
-        />
-      </StyledFilterControlBox>
+}) => (
+  <>
+    <StyledFilterControlBox>
+      <StyledCaretIcon name="caret-down" />
+      <FilterControl
+        filter={filter}
+        directPathToChild={directPathToChild}
+        onExtraFormDataChange={onExtraFormDataChange}
+      />
+    </StyledFilterControlBox>
 
-      <StyledCascadeChildrenList>
-        {filter.cascadeChildren?.map(childFilter => (
-          <li key={childFilter.id}>
-            <CascadeFilterControl
-              filter={childFilter}
-              onExtraFormDataChange={onExtraFormDataChange}
-            />
-          </li>
-        ))}
-      </StyledCascadeChildrenList>
-    </>
-  );
-};
+    <StyledCascadeChildrenList>
+      {filter.cascadeChildren?.map(childFilter => (
+        <li key={childFilter.id}>
+          <CascadeFilterControl
+            filter={childFilter}
+            directPathToChild={directPathToChild}
+            onExtraFormDataChange={onExtraFormDataChange}
+          />
+        </li>
+      ))}
+    </StyledCascadeChildrenList>
+  </>
+);
 
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
+  directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<{ [id: string]: ExtraFormData }>(
     {},
@@ -462,7 +500,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             buttonSize="sm"
             onClick={handleResetAll}
           >
-            {t('Reset All')}
+            {t('Reset all')}
           </Button>
           <Button
             buttonStyle="primary"
@@ -484,6 +522,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               }
               filter={filter}
               onExtraFormDataChange={handleExtraFormDataChange}
+              directPathToChild={directPathToChild}
             />
           ))}
         </FilterControls>

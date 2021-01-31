@@ -62,6 +62,7 @@ export function ColumnSelect({
       { name: ['filters', filterId, 'column'], touched: false, value: null },
     ]);
   }, [form, filterId]);
+
   useChangeEffect(datasetId, previous => {
     if (previous != null) {
       resetColumnField();
@@ -74,9 +75,13 @@ export function ColumnSelect({
       endpoint: `/api/v1/dataset/${datasetId}`,
     }).then(
       ({ json: { result } }) => {
-        return result.columns
+        const columns = result.columns
           .map((col: any) => col.column_name)
           .sort((a: string, b: string) => a.localeCompare(b));
+        if (!columns.includes(value)) {
+          resetColumnField();
+        }
+        return columns;
       },
       async badResponse => {
         const { error, message } = await getClientErrorObject(badResponse);

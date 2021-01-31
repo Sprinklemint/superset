@@ -26,7 +26,7 @@ export type FrameType =
   | 'Calendar'
   | 'Custom'
   | 'Advanced'
-  | 'No Filter';
+  | 'No filter';
 
 export type DateTimeGrainType =
   | 'second'
@@ -57,7 +57,7 @@ export type CustomRangeType = {
   sinceDatetime: string;
   sinceGrain: DateTimeGrainType;
   sinceGrainValue: number;
-  untilMode: 'specific' | 'relative' | 'now' | 'today';
+  untilMode: DateTimeModeType;
   untilDatetime: string;
   untilGrain: DateTimeGrainType;
   untilGrainValue: number;

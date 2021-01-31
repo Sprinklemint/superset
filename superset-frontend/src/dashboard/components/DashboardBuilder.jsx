@@ -37,7 +37,6 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
@@ -93,12 +92,13 @@ const StyledDashboardContent = styled.div`
     width: 100%;
     flex-grow: 1;
     position: relative;
-    margin: ${({ theme }) => theme.gridUnit * 2}px
+    margin: ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme }) => theme.gridUnit * 8}px
       ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme, dashboardFiltersOpen }) =>
-        // eslint-disable-next-line prettier/prettier
-        (dashboardFiltersOpen ? theme.gridUnit * 4 : 0)}px;
+      ${({ theme, dashboardFiltersOpen }) => {
+        if (dashboardFiltersOpen) return theme.gridUnit * 8;
+        return 0;
+      }}px;
   }
 
   .dashboard-component-chart-holder {
@@ -160,12 +160,6 @@ class DashboardBuilder extends React.Component {
     );
   }
 
-  getChildContext() {
-    return {
-      dragDropManager: this.context.dragDropManager || getDragDropManager(),
-    };
-  }
-
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextFocusComponent = getLeafComponentIdFromPath(
       nextProps.directPathToChild,
@@ -221,6 +215,7 @@ class DashboardBuilder extends React.Component {
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
+      directPathToChild,
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -296,6 +291,7 @@ class DashboardBuilder extends React.Component {
                 <FilterBar
                   filtersOpen={this.state.dashboardFiltersOpen}
                   toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                  directPathToChild={directPathToChild}
                 />
               </ErrorBoundary>
             </StickyVerticalBar>

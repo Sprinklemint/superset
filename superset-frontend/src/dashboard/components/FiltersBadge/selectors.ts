@@ -18,6 +18,10 @@
  */
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
+import {
+  NativeFiltersState,
+  FilterState as NativeFilterState,
+} from '../nativeFilters/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -89,8 +93,9 @@ const selectIndicatorsForChartFromFilter = (
   // filters can be applied (if the filter is compatible with the datasource)
   // or rejected (if the filter is incompatible)
   // or the status can be unknown (if the filter has calculated parameters that we can't analyze)
-  const getStatus = (column: string) => {
-    if (appliedColumns.has(column)) return IndicatorStatus.Applied;
+  const getStatus = (column: string, filter: Filter) => {
+    if (appliedColumns.has(column) && filter.columns[column])
+      return IndicatorStatus.Applied;
     if (rejectedColumns.has(column)) return IndicatorStatus.Incompatible;
     return IndicatorStatus.Unset;
   };
@@ -105,10 +110,24 @@ const selectIndicatorsForChartFromFilter = (
       column,
       name: filter.labels[column] || column,
       value: selectIndicatorValue(column, filter, filterDataSource),
-      status: getStatus(column),
+      status: getStatus(column, filter),
       path: filter.directPathToFilter,
     }));
 };
+
+const getAppliedColumns = (chart: any): Set<string> =>
+  new Set(
+    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
+      (filter: any) => filter.column,
+    ),
+  );
+
+const getRejectedColumns = (chart: any): Set<string> =>
+  new Set(
+    (chart?.queriesResponse?.[0]?.rejected_filters || []).map(
+      (filter: any) => filter.column,
+    ),
+  );
 
 export type Indicator = {
   column: string;
@@ -131,16 +150,9 @@ export const selectIndicatorsForChart = (
 
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
-  const appliedColumns: Set<string> = new Set(
-    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
-      (filter: any) => filter.column,
-    ),
-  );
-  const rejectedColumns: Set<string> = new Set(
-    (chart?.queriesResponse?.[0]?.rejected_filters || []).map(
-      (filter: any) => filter.column,
-    ),
-  );
+  const appliedColumns = getAppliedColumns(chart);
+  const rejectedColumns = getRejectedColumns(chart);
+
   const indicators = Object.values(filters)
     .filter(filter => filter.chartId !== chartId)
     .reduce(
@@ -157,5 +169,55 @@ export const selectIndicatorsForChart = (
       [] as Indicator[],
     );
   indicators.sort((a, b) => a.name.localeCompare(b.name));
+  return indicators;
+};
+
+const selectNativeIndicatorValue = (
+  filterState: NativeFilterState,
+): string[] => {
+  const filters = filterState?.extraFormData?.append_form_data?.filters;
+  if (filters?.length) {
+    const filter = filters[0];
+    if ('val' in filter) {
+      const val = filter.val as string | string[];
+      if (Array.isArray(val)) {
+        return val;
+      }
+      return [val];
+    }
+  }
+  return [];
+};
+
+export const selectNativeIndicatorsForChart = (
+  nativeFilters: NativeFiltersState,
+  chartId: number,
+  charts: any,
+): Indicator[] => {
+  const chart = charts[chartId];
+
+  const appliedColumns = getAppliedColumns(chart);
+  const rejectedColumns = getRejectedColumns(chart);
+
+  const getStatus = (column: string, value: string[]): IndicatorStatus => {
+    if (rejectedColumns.has(column)) return IndicatorStatus.Incompatible;
+    if (appliedColumns.has(column) && value.length > 0) {
+      return IndicatorStatus.Applied;
+    }
+    return IndicatorStatus.Unset;
+  };
+
+  const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
+    const column = nativeFilter.targets[0].column.name;
+    const filterState = nativeFilters.filtersState[nativeFilter.id];
+    const value = selectNativeIndicatorValue(filterState);
+    return {
+      column,
+      name: nativeFilter.name,
+      path: [nativeFilter.id],
+      status: getStatus(column, value),
+      value,
+    };
+  });
   return indicators;
 };

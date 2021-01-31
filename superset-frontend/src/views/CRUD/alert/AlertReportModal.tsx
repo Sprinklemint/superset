@@ -69,15 +69,15 @@ const CONDITIONS = [
     value: '>=',
   },
   {
-    label: t('== (Is Equal)'),
+    label: t('== (Is equal)'),
     value: '==',
   },
   {
-    label: t('!= (Is Not Equal)'),
+    label: t('!= (Is not equal)'),
     value: '!=',
   },
   {
-    label: t('Not Null'),
+    label: t('Not null'),
     value: 'not null',
   },
 ];
@@ -212,6 +212,10 @@ export const StyledInputContainer = styled.div`
   .input-container {
     display: flex;
     align-items: center;
+
+    > div {
+      width: 100%;
+    }
 
     label {
       display: flex;
@@ -415,13 +419,11 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     setRecipientValue(recipients);
   }
 
-  const methodOptions = (options || []).map((method: NotificationMethod) => {
-    return (
-      <Select.Option key={method} value={method}>
-        {t(method)}
-      </Select.Option>
-    );
-  });
+  const methodOptions = (options || []).map((method: NotificationMethod) => (
+    <Select.Option key={method} value={method}>
+      {t(method)}
+    </Select.Option>
+  ));
 
   return (
     <StyledNotificationMethod>
@@ -477,9 +479,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [currentAlert, setCurrentAlert] = useState<Partial<
-    AlertObject
-  > | null>();
+  const [
+    currentAlert,
+    setCurrentAlert,
+  ] = useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
 
@@ -491,9 +494,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const isEditMode = alert !== null;
 
-  const [notificationAddState, setNotificationAddState] = useState<
-    NotificationAddStatus
-  >('active');
+  const [
+    notificationAddState,
+    setNotificationAddState,
+  ] = useState<NotificationAddStatus>('active');
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
@@ -636,15 +640,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return SupersetClient.get({
       endpoint: `/api/v1/report/related/owners?q=${query}`,
     }).then(
-      response => {
-        return response.json.result.map((item: any) => ({
+      response =>
+        response.json.result.map((item: any) => ({
           value: item.value,
           label: item.text,
-        }));
-      },
-      badResponse => {
-        return [];
-      },
+        })),
+      badResponse => [],
     );
   };
 
@@ -672,9 +673,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
         return list;
       },
-      badResponse => {
-        return [];
-      },
+      badResponse => [],
     );
   };
 
@@ -721,9 +720,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
         return list;
       },
-      badResponse => {
-        return [];
-      },
+      badResponse => [],
     );
   };
 
@@ -766,9 +763,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
         return list;
       },
-      badResponse => {
-        return [];
-      },
+      badResponse => [],
     );
   };
 
@@ -1001,27 +996,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }, [resource]);
 
   // Validation
-  useEffect(
-    () => {
-      validate();
-    },
-    currentAlert
-      ? [
-          currentAlert.name,
-          currentAlert.owners,
-          currentAlert.database,
-          currentAlert.sql,
-          currentAlert.validator_config_json,
-          currentAlert.crontab,
-          currentAlert.working_timeout,
-          currentAlert.dashboard,
-          currentAlert.chart,
-          contentType,
-          notificationSettings,
-          conditionNotNull,
-        ]
-      : [],
-  );
+  const currentAlertSafe = currentAlert || {};
+  useEffect(() => {
+    validate();
+  }, [
+    currentAlertSafe.name,
+    currentAlertSafe.owners,
+    currentAlertSafe.database,
+    currentAlertSafe.sql,
+    currentAlertSafe.validator_config_json,
+    currentAlertSafe.crontab,
+    currentAlertSafe.working_timeout,
+    currentAlertSafe.dashboard,
+    currentAlertSafe.chart,
+    contentType,
+    notificationSettings,
+    conditionNotNull,
+  ]);
 
   // Show/hide
   if (isHidden && show) {
@@ -1029,21 +1020,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }
 
   // Dropdown options
-  const conditionOptions = CONDITIONS.map(condition => {
-    return (
-      <Select.Option key={condition.value} value={condition.value}>
-        {condition.label}
-      </Select.Option>
-    );
-  });
+  const conditionOptions = CONDITIONS.map(condition => (
+    <Select.Option key={condition.value} value={condition.value}>
+      {condition.label}
+    </Select.Option>
+  ));
 
-  const retentionOptions = RETENTION_OPTIONS.map(option => {
-    return (
-      <Select.Option key={option.value} value={option.value}>
-        {option.label}
-      </Select.Option>
-    );
-  });
+  const retentionOptions = RETENTION_OPTIONS.map(option => (
+    <Select.Option key={option.value} value={option.value}>
+      {option.label}
+    </Select.Option>
+  ));
 
   return (
     <Modal
@@ -1073,7 +1060,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         <div className="header-section">
           <StyledInputContainer>
             <div className="control-label">
-              {isReport ? t('Report Name') : t('Alert Name')}
+              {isReport ? t('Report name') : t('Alert name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -1081,7 +1068,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 type="text"
                 name="name"
                 value={currentAlert ? currentAlert.name : ''}
-                placeholder={isReport ? t('Report Name') : t('Alert Name')}
+                placeholder={isReport ? t('Report name') : t('Alert name')}
                 onChange={onTextChange}
               />
             </div>
@@ -1127,7 +1114,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {!isReport && (
             <div className="column condition">
               <StyledSectionTitle>
-                <h4>{t('Alert Condition')}</h4>
+                <h4>{t('Alert condition')}</h4>
               </StyledSectionTitle>
               <StyledInputContainer>
                 <div className="control-label">
@@ -1223,8 +1210,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>
                 {isReport
-                  ? t('Report Schedule')
-                  : t('Alert Condition Schedule')}
+                  ? t('Report schedule')
+                  : t('Alert condition schedule')}
               </h4>
             </StyledSectionTitle>
             <AlertReportCronScheduler
@@ -1234,11 +1221,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <StyledSectionTitle>
-              <h4>{t('Schedule Settings')}</h4>
+              <h4>{t('Schedule settings')}</h4>
             </StyledSectionTitle>
             <StyledInputContainer>
               <div className="control-label">
-                {t('Log Retention')}
+                {t('Log retention')}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
@@ -1262,7 +1249,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledInputContainer>
             <StyledInputContainer>
               <div className="control-label">
-                {t('Working Timeout')}
+                {t('Working timeout')}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
@@ -1276,23 +1263,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <span className="input-label">seconds</span>
               </div>
             </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="control-label">{t('Grace Period')}</div>
-              <div className="input-container">
-                <input
-                  type="number"
-                  name="grace_period"
-                  value={currentAlert ? currentAlert.grace_period : ''}
-                  placeholder={t('Time in seconds')}
-                  onChange={onTextChange}
-                />
-                <span className="input-label">seconds</span>
-              </div>
-            </StyledInputContainer>
+            {!isReport && (
+              <StyledInputContainer>
+                <div className="control-label">{t('Grace period')}</div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    name="grace_period"
+                    value={currentAlert ? currentAlert.grace_period : ''}
+                    placeholder={t('Time in seconds')}
+                    onChange={onTextChange}
+                  />
+                  <span className="input-label">seconds</span>
+                </div>
+              </StyledInputContainer>
+            )}
           </div>
           <div className="column message">
             <StyledSectionTitle>
-              <h4>{t('Message Content')}</h4>
+              <h4>{t('Message content')}</h4>
             </StyledSectionTitle>
             <div className="inline-container add-margin">
               <Radio.Group onChange={onContentTypeChange} value={contentType}>
@@ -1341,7 +1330,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onDashboardChange}
             />
             <StyledSectionTitle>
-              <h4>{t('Notification Method')}</h4>
+              <h4>{t('Notification method')}</h4>
             </StyledSectionTitle>
             <NotificationMethod
               setting={notificationSettings[0]}

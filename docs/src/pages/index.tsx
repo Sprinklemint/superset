@@ -35,7 +35,6 @@ import GitHubButton from 'react-github-btn';
 
 import { Databases } from '../resources/data';
 import Layout from '../components/layout';
-import Image from '../components/image';
 import DbImage from '../components/DbImage';
 import 'antd/dist/antd.css';
 import SEO from '../components/seo';
@@ -109,10 +108,6 @@ const titleContainer = css`
     ${[mq[0]]} {
       width: 400px;
     }
-  }
-  .incubator {
-    margin-top: 40px;
-    margin-bottom: 30px;
   }
   .alert {
     color: #0c5460;
@@ -329,9 +324,6 @@ const Theme = () => {
                 </GitHubButton>
               </span>
             </div>
-            <div className="incubator">
-              <Image imageName="incubatorSm" />
-            </div>
             <div>
               <Link to="/docs/intro">
                 <Button type="primary" size="medium">
@@ -436,13 +428,13 @@ const Theme = () => {
               </div>
               <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
                 <div className="imageContainer">
-                  <img src="/images/explorer.png" alt="" />
+                  <img src="/images/explorer5.jpg" alt="" />
                 </div>
                 <div className="imageContainer">
                   <img src="/images/dashboard3.png" alt="" />
                 </div>
                 <div className="imageContainer">
-                  <img src="/images/sqllab1.png" alt="" />
+                  <img src="/images/sqllab5.jpg" alt="" />
                 </div>
               </Carousel>
             </div>
@@ -469,7 +461,7 @@ const Theme = () => {
               </ul>
               <span className="databaseSub">
                 ... and many other
-                <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
+                <a href="docs/databases/installing-database-drivers">
                   {' '}
                   compatible databases
                   {' '}

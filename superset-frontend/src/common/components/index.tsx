@@ -28,6 +28,7 @@ import { DropDownProps } from 'antd/lib/dropdown';
  */
 // eslint-disable-next-line no-restricted-imports
 export {
+  Alert,
   AutoComplete,
   Avatar,
   Button,
@@ -44,8 +45,10 @@ export {
   Typography,
   Tree,
   Popover,
+  Slider,
   Radio,
   Row,
+  Space,
   Select,
   Skeleton,
   Switch,
